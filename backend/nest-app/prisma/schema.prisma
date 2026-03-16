@@ -15,13 +15,261 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-model User {
+model Customers {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
-  password  String
+  phone     String?
+  password  String?
+  status    Int?
   createdAt DateTime @default(now())
+  updateAt  DateTime?
 
-  // posts     Post[]
+  orders    Orders[]
+  comments  Comments[]
+  cart      Cart?
+  addresses Address[]
+}
+
+////////////////////////////
+/// ADDRESS
+////////////////////////////
+
+model Address {
+  id         Int    @id @default(autoincrement())
+  customerId Int
+
+  city       String
+  district   String
+  ward       String
+  street     String
+
+  customer   Customers @relation(fields: [customerId], references: [id])
+}
+
+////////////////////////////
+/// REGION
+////////////////////////////
+
+model Region {
+  id     Int    @id @default(autoincrement())
+  name   String
+
+  branch Branch[]
+}
+
+////////////////////////////
+/// BRANCH
+////////////////////////////
+
+model Branch {
+  id       Int    @id @default(autoincrement())
+  name     String
+  address  String
+
+  regionId Int
+  region   Region @relation(fields: [regionId], references: [id])
+
+  warehouse Warehouse[]
+}
+
+////////////////////////////
+/// WAREHOUSE
+////////////////////////////
+
+model Warehouse {
+  id       Int    @id @default(autoincrement())
+  name     String
+
+  branchId Int
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  stocks   ProductStock[]
+  employee Employees[]
+}
+
+////////////////////////////
+/// EMPLOYEES
+////////////////////////////
+
+model Employees {
+  id          Int    @id @default(autoincrement())
+  warehouseId Int
+
+  name        String
+  email       String @unique
+  phone       String?
+  password    String
+  status      Int?
+
+  createdAt   DateTime @default(now())
+  updateAt    DateTime?
+
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+}
+
+////////////////////////////
+/// CATEGORY
+////////////////////////////
+
+model Categories {
+  id         Int    @id @default(autoincrement())
+  name       String
+  description String
+  status     Int
+  hot        Int
+
+  createdAt  DateTime @default(now())
+  updateAt   DateTime?
+
+  products   Products[]
+}
+
+////////////////////////////
+/// PRODUCTS
+////////////////////////////
+
+model Products {
+  id          Int    @id @default(autoincrement())
+
+  categoryId  Int
+  category    Categories @relation(fields: [categoryId], references: [id])
+
+  name        String
+  description String
+
+  rate        Int
+  countRate   Int
+  purchases   Int
+
+  createdAt   DateTime @default(now())
+  updateAt    DateTime?
+
+  productTypes ProductDetails[]
+  comments     Comments[]
+}
+
+////////////////////////////
+/// PRODUCT DETAILS (SIZE COLOR)
+////////////////////////////
+
+model ProductDetails {
+  id        Int @id @default(autoincrement())
+
+  productId Int
+  color     Int
+  size      Int
+  price     Int
+
+  status    Int
+
+  createdAt DateTime @default(now())
+  updateAt  DateTime?
+
+  product   Products @relation(fields: [productId], references: [id])
+
+  productStock ProductStock[]
+  orderDetail  OrderDetails[]
+  cartItems    CartItems[]
+
+  @@unique([productId, size, color])
+}
+
+////////////////////////////
+/// STOCK
+////////////////////////////
+
+model ProductStock {
+  id              Int @id @default(autoincrement())
+
+  productDetailId Int
+  warehouseId     Int
+
+  quantity        Int
+
+  productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
+  warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productDetailId, warehouseId])
+}
+
+////////////////////////////
+/// COMMENT
+////////////////////////////
+
+model Comments {
+  id        Int @id @default(autoincrement())
+
+  userId    Int
+  productId Int
+
+  content   String
+
+  createdAt DateTime @default(now())
+  updateAt  DateTime?
+
+  user      Customers @relation(fields: [userId], references: [id])
+  product   Products  @relation(fields: [productId], references: [id])
+}
+
+////////////////////////////
+/// CART
+////////////////////////////
+
+model Cart {
+  id         Int @id @default(autoincrement())
+
+  customerId Int @unique
+
+  customer   Customers @relation(fields: [customerId], references: [id])
+
+  items      CartItems[]
+}
+
+model CartItems {
+  id              Int @id @default(autoincrement())
+
+  cartId          Int
+  productDetailId Int
+  quantity        Int
+
+  cart          Cart           @relation(fields: [cartId], references: [id])
+  productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
+
+  @@unique([cartId, productDetailId])
+}
+
+////////////////////////////
+/// ORDER
+////////////////////////////
+
+model Orders {
+  id           Int @id @default(autoincrement())
+
+  customerId   Int
+  status       Int
+  totalPrice   Int
+
+  createdAt    DateTime @default(now())
+
+  customer     Customers @relation(fields: [customerId], references: [id])
+
+  orderDetails OrderDetails[]
+}
+
+////////////////////////////
+/// ORDER DETAILS
+////////////////////////////
+
+model OrderDetails {
+  id              Int @id @default(autoincrement())
+
+  orderId         Int
+  productDetailId Int
+
+  quantity        Int
+  price           Int
+
+  order           Orders         @relation(fields: [orderId], references: [id])
+  productDetail   ProductDetails @relation(fields: [productDetailId], references: [id])
 }

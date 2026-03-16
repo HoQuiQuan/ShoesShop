@@ -24,7 +24,7 @@ export default function LoginPage() {
 
       const user = result.user;
 
-      console.log("User:", user);
+      console.log(user);
     } catch (error) {
       console.log(error);
     }
@@ -69,7 +69,7 @@ export default function LoginPage() {
       console.log(userCredential.user);
 
       alert("Đăng nhập thành công");
-    } catch (error: any) {
+    } catch (error) {
       console.log(error);
 
       alert("Đăng nhập thất bại");
