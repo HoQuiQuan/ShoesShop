@@ -5,8 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
+  provider     = "prisma-client-js"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -16,13 +16,13 @@ datasource db {
 }
 
 model Customers {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
   phone     String?
   password  String?
   status    Int?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updateAt  DateTime?
 
   orders    Orders[]
@@ -36,15 +36,15 @@ model Customers {
 ////////////////////////////
 
 model Address {
-  id         Int    @id @default(autoincrement())
+  id         Int @id @default(autoincrement())
   customerId Int
 
-  city       String
-  district   String
-  ward       String
-  street     String
+  city     String
+  district String
+  ward     String
+  street   String
 
-  customer   Customers @relation(fields: [customerId], references: [id])
+  customer Customers @relation(fields: [customerId], references: [id])
 }
 
 ////////////////////////////
@@ -52,8 +52,8 @@ model Address {
 ////////////////////////////
 
 model Region {
-  id     Int    @id @default(autoincrement())
-  name   String
+  id   Int    @id @default(autoincrement())
+  name String
 
   branch Branch[]
 }
@@ -63,9 +63,9 @@ model Region {
 ////////////////////////////
 
 model Branch {
-  id       Int    @id @default(autoincrement())
-  name     String
-  address  String
+  id      Int    @id @default(autoincrement())
+  name    String
+  address String
 
   regionId Int
   region   Region @relation(fields: [regionId], references: [id])
@@ -78,8 +78,8 @@ model Branch {
 ////////////////////////////
 
 model Warehouse {
-  id       Int    @id @default(autoincrement())
-  name     String
+  id   Int    @id @default(autoincrement())
+  name String
 
   branchId Int
   branch   Branch @relation(fields: [branchId], references: [id])
@@ -93,19 +93,19 @@ model Warehouse {
 ////////////////////////////
 
 model Employees {
-  id          Int    @id @default(autoincrement())
+  id          Int @id @default(autoincrement())
   warehouseId Int
 
-  name        String
-  email       String @unique
-  phone       String?
-  password    String
-  status      Int?
+  name     String
+  email    String  @unique
+  phone    String?
+  password String
+  status   Int?
 
-  createdAt   DateTime @default(now())
-  updateAt    DateTime?
+  createdAt DateTime  @default(now())
+  updateAt  DateTime?
 
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
 }
 
 ////////////////////////////
@@ -113,16 +113,16 @@ model Employees {
 ////////////////////////////
 
 model Categories {
-  id         Int    @id @default(autoincrement())
-  name       String
+  id          Int    @id @default(autoincrement())
+  name        String
   description String
-  status     Int
-  hot        Int
+  status      Int
+  hot         Int
 
-  createdAt  DateTime @default(now())
-  updateAt   DateTime?
+  createdAt DateTime  @default(now())
+  updateAt  DateTime?
 
-  products   Products[]
+  products Products[]
 }
 
 ////////////////////////////
@@ -130,20 +130,20 @@ model Categories {
 ////////////////////////////
 
 model Products {
-  id          Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  categoryId  Int
-  category    Categories @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  category   Categories @relation(fields: [categoryId], references: [id])
 
   name        String
   description String
 
-  rate        Int
-  countRate   Int
-  purchases   Int
+  rate      Int
+  countRate Int
+  purchases Int
 
-  createdAt   DateTime @default(now())
-  updateAt    DateTime?
+  createdAt DateTime  @default(now())
+  updateAt  DateTime?
 
   productTypes ProductDetails[]
   comments     Comments[]
@@ -154,19 +154,19 @@ model Products {
 ////////////////////////////
 
 model ProductDetails {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId Int
   color     Int
   size      Int
   price     Int
 
-  status    Int
+  status Int
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updateAt  DateTime?
 
-  product   Products @relation(fields: [productId], references: [id])
+  product Products @relation(fields: [productId], references: [id])
 
   productStock ProductStock[]
   orderDetail  OrderDetails[]
@@ -180,12 +180,12 @@ model ProductDetails {
 ////////////////////////////
 
 model ProductStock {
-  id              Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productDetailId Int
   warehouseId     Int
 
-  quantity        Int
+  quantity Int
 
   productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
   warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
@@ -198,18 +198,18 @@ model ProductStock {
 ////////////////////////////
 
 model Comments {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   userId    Int
   productId Int
 
-  content   String
+  content String
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updateAt  DateTime?
 
-  user      Customers @relation(fields: [userId], references: [id])
-  product   Products  @relation(fields: [productId], references: [id])
+  user    Customers @relation(fields: [userId], references: [id])
+  product Products  @relation(fields: [productId], references: [id])
 }
 
 ////////////////////////////
@@ -217,17 +217,17 @@ model Comments {
 ////////////////////////////
 
 model Cart {
-  id         Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   customerId Int @unique
 
-  customer   Customers @relation(fields: [customerId], references: [id])
+  customer Customers @relation(fields: [customerId], references: [id])
 
-  items      CartItems[]
+  items CartItems[]
 }
 
 model CartItems {
-  id              Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   cartId          Int
   productDetailId Int
@@ -244,15 +244,15 @@ model CartItems {
 ////////////////////////////
 
 model Orders {
-  id           Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  customerId   Int
-  status       Int
-  totalPrice   Int
+  customerId Int
+  status     Int
+  totalPrice Int
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  customer     Customers @relation(fields: [customerId], references: [id])
+  customer Customers @relation(fields: [customerId], references: [id])
 
   orderDetails OrderDetails[]
 }
@@ -262,14 +262,14 @@ model Orders {
 ////////////////////////////
 
 model OrderDetails {
-  id              Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   orderId         Int
   productDetailId Int
 
-  quantity        Int
-  price           Int
+  quantity Int
+  price    Int
 
-  order           Orders         @relation(fields: [orderId], references: [id])
-  productDetail   ProductDetails @relation(fields: [productDetailId], references: [id])
+  order         Orders         @relation(fields: [orderId], references: [id])
+  productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
 }
