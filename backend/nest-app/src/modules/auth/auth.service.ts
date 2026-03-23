@@ -1,4 +1,4 @@
-import admin from '../../../firebase.config';
+import { getFirebaseApp } from 'src/firebase.config';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { TokenDto } from 'src/dto/token.dto';
@@ -20,11 +20,9 @@ export class AuthService {
   // ✅ FIX: có return type rõ ràng
   async verifyFirebaseToken(token: TokenDto): Promise<DecodedIdToken> {
     try {
-      const decoded: DecodedIdToken = await admin
-        .auth()
-        .verifyIdToken(token.token);
+      const firebaseApp = getFirebaseApp();
 
-      return decoded;
+      return await firebaseApp.auth().verifyIdToken(token.token);
     } catch {
       throw new UnauthorizedException('Invalid or expired Firebase token');
     }
@@ -47,6 +45,7 @@ export class AuthService {
 
   // ✅ Login Firebase → JWT
   async loginWithFirebase(token: TokenDto) {
+    console.log('secret: ', process.env.JWT_SECRET);
     const firebaseUser = await this.verifyFirebaseToken(token);
 
     // ✅ FIX: tránh undefined
@@ -66,6 +65,7 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
+    console.log('refreshSecret: ', process.env.JWT_REFRESH_SECRET);
     try {
       const payload = await this.jwtService.verify<JwtPayload>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET as string,
