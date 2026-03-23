@@ -24,16 +24,14 @@ model Customers {
   status    Int?
   createdAt DateTime @default(now())
   updateAt  DateTime?
-
+  provider  String
   orders    Orders[]
   comments  Comments[]
   cart      Cart?
   addresses Address[]
-}
 
-////////////////////////////
-/// ADDRESS
-////////////////////////////
+  @@index([createdAt])
+}
 
 model Address {
   id         Int    @id @default(autoincrement())
@@ -45,11 +43,9 @@ model Address {
   street     String
 
   customer   Customers @relation(fields: [customerId], references: [id])
-}
 
-////////////////////////////
-/// REGION
-////////////////////////////
+  @@index([customerId])
+}
 
 model Region {
   id     Int    @id @default(autoincrement())
@@ -57,10 +53,6 @@ model Region {
 
   branch Branch[]
 }
-
-////////////////////////////
-/// BRANCH
-////////////////////////////
 
 model Branch {
   id       Int    @id @default(autoincrement())
@@ -71,11 +63,9 @@ model Branch {
   region   Region @relation(fields: [regionId], references: [id])
 
   warehouse Warehouse[]
-}
 
-////////////////////////////
-/// WAREHOUSE
-////////////////////////////
+  @@index([regionId])
+}
 
 model Warehouse {
   id       Int    @id @default(autoincrement())
@@ -86,11 +76,9 @@ model Warehouse {
 
   stocks   ProductStock[]
   employee Employees[]
-}
 
-////////////////////////////
-/// EMPLOYEES
-////////////////////////////
+  @@index([branchId])
+}
 
 model Employees {
   id          Int    @id @default(autoincrement())
@@ -106,28 +94,25 @@ model Employees {
   updateAt    DateTime?
 
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-}
 
-////////////////////////////
-/// CATEGORY
-////////////////////////////
+  @@index([warehouseId])
+}
 
 model Categories {
-  id         Int    @id @default(autoincrement())
-  name       String
+  id          Int    @id @default(autoincrement())
+  name        String
   description String
-  status     Int
-  hot        Int
+  status      Int
+  hot         Int
 
-  createdAt  DateTime @default(now())
-  updateAt   DateTime?
+  createdAt   DateTime @default(now())
+  updateAt    DateTime?
 
-  products   Products[]
+  products    Products[]
+
+  @@index([status])
+  @@index([hot])
 }
-
-////////////////////////////
-/// PRODUCTS
-////////////////////////////
 
 model Products {
   id          Int    @id @default(autoincrement())
@@ -147,11 +132,16 @@ model Products {
 
   productTypes ProductDetails[]
   comments     Comments[]
-}
 
-////////////////////////////
-/// PRODUCT DETAILS (SIZE COLOR)
-////////////////////////////
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([rate])
+  @@index([purchases])
+
+  // composite index (rất quan trọng)
+  @@index([categoryId, createdAt])
+  @@index([categoryId, purchases])
+}
 
 model ProductDetails {
   id        Int @id @default(autoincrement())
@@ -173,11 +163,8 @@ model ProductDetails {
   cartItems    CartItems[]
 
   @@unique([productId, size, color])
+  @@index([productId])
 }
-
-////////////////////////////
-/// STOCK
-////////////////////////////
 
 model ProductStock {
   id              Int @id @default(autoincrement())
@@ -191,11 +178,8 @@ model ProductStock {
   warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
 
   @@unique([productDetailId, warehouseId])
+  @@index([warehouseId])
 }
-
-////////////////////////////
-/// COMMENT
-////////////////////////////
 
 model Comments {
   id        Int @id @default(autoincrement())
@@ -210,11 +194,10 @@ model Comments {
 
   user      Customers @relation(fields: [userId], references: [id])
   product   Products  @relation(fields: [productId], references: [id])
-}
 
-////////////////////////////
-/// CART
-////////////////////////////
+  @@index([productId])
+  @@index([userId])
+}
 
 model Cart {
   id         Int @id @default(autoincrement())
@@ -237,11 +220,8 @@ model CartItems {
   productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
 
   @@unique([cartId, productDetailId])
+  @@index([cartId])
 }
-
-////////////////////////////
-/// ORDER
-////////////////////////////
 
 model Orders {
   id           Int @id @default(autoincrement())
@@ -255,11 +235,11 @@ model Orders {
   customer     Customers @relation(fields: [customerId], references: [id])
 
   orderDetails OrderDetails[]
-}
 
-////////////////////////////
-/// ORDER DETAILS
-////////////////////////////
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([status])
+}
 
 model OrderDetails {
   id              Int @id @default(autoincrement())
@@ -272,4 +252,7 @@ model OrderDetails {
 
   order           Orders         @relation(fields: [orderId], references: [id])
   productDetail   ProductDetails @relation(fields: [productDetailId], references: [id])
+
+  @@index([orderId])
+  @@index([productDetailId])
 }

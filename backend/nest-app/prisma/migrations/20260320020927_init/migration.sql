@@ -4,12 +4,13 @@ CREATE TABLE `Customers` (
     `name` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NULL,
-    `password` VARCHAR(191) NOT NULL,
+    `password` VARCHAR(191) NULL,
     `status` INTEGER NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updateAt` DATETIME(3) NULL,
 
     UNIQUE INDEX `Customers_email_key`(`email`),
+    INDEX `Customers_createdAt_idx`(`createdAt`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -22,6 +23,7 @@ CREATE TABLE `Address` (
     `ward` VARCHAR(191) NOT NULL,
     `street` VARCHAR(191) NOT NULL,
 
+    INDEX `Address_customerId_idx`(`customerId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -40,6 +42,7 @@ CREATE TABLE `Branch` (
     `address` VARCHAR(191) NOT NULL,
     `regionId` INTEGER NOT NULL,
 
+    INDEX `Branch_regionId_idx`(`regionId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -49,6 +52,7 @@ CREATE TABLE `Warehouse` (
     `name` VARCHAR(191) NOT NULL,
     `branchId` INTEGER NOT NULL,
 
+    INDEX `Warehouse_branchId_idx`(`branchId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -65,6 +69,7 @@ CREATE TABLE `Employees` (
     `updateAt` DATETIME(3) NULL,
 
     UNIQUE INDEX `Employees_email_key`(`email`),
+    INDEX `Employees_warehouseId_idx`(`warehouseId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -78,6 +83,8 @@ CREATE TABLE `Categories` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updateAt` DATETIME(3) NULL,
 
+    INDEX `Categories_status_idx`(`status`),
+    INDEX `Categories_hot_idx`(`hot`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -93,6 +100,12 @@ CREATE TABLE `Products` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updateAt` DATETIME(3) NULL,
 
+    INDEX `Products_categoryId_idx`(`categoryId`),
+    INDEX `Products_createdAt_idx`(`createdAt`),
+    INDEX `Products_rate_idx`(`rate`),
+    INDEX `Products_purchases_idx`(`purchases`),
+    INDEX `Products_categoryId_createdAt_idx`(`categoryId`, `createdAt`),
+    INDEX `Products_categoryId_purchases_idx`(`categoryId`, `purchases`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -107,6 +120,7 @@ CREATE TABLE `ProductDetails` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updateAt` DATETIME(3) NULL,
 
+    INDEX `ProductDetails_productId_idx`(`productId`),
     UNIQUE INDEX `ProductDetails_productId_size_color_key`(`productId`, `size`, `color`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -118,6 +132,7 @@ CREATE TABLE `ProductStock` (
     `warehouseId` INTEGER NOT NULL,
     `quantity` INTEGER NOT NULL,
 
+    INDEX `ProductStock_warehouseId_idx`(`warehouseId`),
     UNIQUE INDEX `ProductStock_productDetailId_warehouseId_key`(`productDetailId`, `warehouseId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -131,6 +146,8 @@ CREATE TABLE `Comments` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updateAt` DATETIME(3) NULL,
 
+    INDEX `Comments_productId_idx`(`productId`),
+    INDEX `Comments_userId_idx`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -150,6 +167,7 @@ CREATE TABLE `CartItems` (
     `productDetailId` INTEGER NOT NULL,
     `quantity` INTEGER NOT NULL,
 
+    INDEX `CartItems_cartId_idx`(`cartId`),
     UNIQUE INDEX `CartItems_cartId_productDetailId_key`(`cartId`, `productDetailId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -162,6 +180,9 @@ CREATE TABLE `Orders` (
     `totalPrice` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    INDEX `Orders_customerId_idx`(`customerId`),
+    INDEX `Orders_createdAt_idx`(`createdAt`),
+    INDEX `Orders_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -173,6 +194,8 @@ CREATE TABLE `OrderDetails` (
     `quantity` INTEGER NOT NULL,
     `price` INTEGER NOT NULL,
 
+    INDEX `OrderDetails_orderId_idx`(`orderId`),
+    INDEX `OrderDetails_productDetailId_idx`(`productDetailId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

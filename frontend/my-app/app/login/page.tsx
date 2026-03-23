@@ -16,6 +16,9 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordGoogle, setPasswordGoogle] = useState(""); // set password cho google
+  const [isHiddenFieldPasswordGoogle, setIsHiddenFieldPasswordGoogle] =
+    useState(""); // ô nhập liệu password cho đăng nhập bằng google
   const provider = new GoogleAuthProvider();
 
   const handleLoginGoogle = async () => {
@@ -29,27 +32,7 @@ export default function LoginPage() {
       console.log(error);
     }
   };
-  // const handleLoginWithEmailPassword = async () => {
-  //   if (!email || !password) {
-  //     alert("Vui lòng nhập đầy đủ thông tin");
-  //     return;
-  //   }
 
-  //   try {
-  //     const userCredential = await signInWithEmailAndPassword(
-  //       auth,
-  //       email,
-  //       password,
-  //     );
-
-  //     console.log(userCredential.user);
-
-  //     alert("Login thành công");
-  //   } catch (error) {
-  //     console.log(error);
-  //     alert("Email hoặc password sai");
-  //   }
-  // };
   // LOGIN EMAIL PASSWORD
   const loginWithPassword = async () => {
     try {
@@ -75,28 +58,6 @@ export default function LoginPage() {
       alert("Đăng nhập thất bại");
     }
   };
-
-  // // LOGIN GOOGLE
-  // const loginWithGoogle = async () => {
-  //   try {
-  //     const result = await signInWithPopup(auth, provider);
-
-  //     console.log("google login", result.user);
-  //   } catch (err: any) {
-  //     if (err.code === "auth/account-exists-with-different-credential") {
-  //       const methods = await fetchSignInMethodsForEmail(
-  //         auth,
-  //         err.customData.email,
-  //       );
-
-  //       if (methods.includes("password")) {
-  //         alert("Email này đã đăng ký bằng password");
-  //       }
-  //     }
-
-  //     console.log(err.message);
-  //   }
-  // };
 
   return (
     <div className="min-h-screen flex">
