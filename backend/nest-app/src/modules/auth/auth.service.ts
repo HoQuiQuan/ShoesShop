@@ -45,8 +45,25 @@ export class AuthService {
 
   // ✅ Login Firebase → JWT
   async loginWithFirebase(token: TokenDto) {
-    console.log('secret: ', process.env.JWT_SECRET);
+    // console.log('secret: ', process.env.JWT_SECRET);
     const firebaseUser = await this.verifyFirebaseToken(token);
+
+    const emailUser: string = firebaseUser.email as string;
+
+    const findUser = await this.prismaService.customers.findFirst({
+      where: {
+        email: emailUser,
+      },
+    });
+
+    if (!findUser) {
+      await this.prismaService.customers.create({
+        data: {
+          name: firebaseUser.
+          email: emailUser,
+        },
+      });
+    }
 
     // ✅ FIX: tránh undefined
     if (!firebaseUser.email) {
@@ -65,14 +82,17 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
-    console.log('refreshSecret: ', process.env.JWT_REFRESH_SECRET);
+    // console.log('refreshSecret: ', process.env.JWT_REFRESH_SECRET);
     try {
       const payload = await this.jwtService.verify<JwtPayload>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET as string,
       });
-
+      console.log(payload);
       return {
-        accessToken: this.generateAccessToken(payload),
+        accessToken: this.generateAccessToken({
+          userId: payload.userId,
+          email: payload.email,
+        }),
       };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
