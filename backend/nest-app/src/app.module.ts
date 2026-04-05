@@ -4,6 +4,9 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
+import { CartController } from './modules/cart/cart.controller';
+import { CartService } from './modules/cart/cart.service';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -13,9 +16,10 @@ import { AuthModule } from './modules/auth/auth.module';
     }),
     PrismaModule,
     AuthModule,
+    CartModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, CartController],
+  providers: [AppService, CartService],
 })
 export class AppModule {}
 

@@ -23,6 +23,7 @@ model Customers {
   password  String?
   status    Int?
   createdAt DateTime @default(now())
+  avarta    String?
   updateAt  DateTime?
   provider  String
   orders    Orders[]
@@ -47,56 +48,56 @@ model Address {
   @@index([customerId])
 }
 
-model Region {
-  id     Int    @id @default(autoincrement())
-  name   String
+// model Region {
+//   id     Int    @id @default(autoincrement())
+//   name   String
 
-  branch Branch[]
-}
+//   branch Branch[]
+// }
 
-model Branch {
-  id       Int    @id @default(autoincrement())
-  name     String
-  address  String
+// model Branch {
+//   id       Int    @id @default(autoincrement())
+//   name     String
+//   address  String
 
-  regionId Int
-  region   Region @relation(fields: [regionId], references: [id])
+//   regionId Int
+//   region   Region @relation(fields: [regionId], references: [id])
 
-  warehouse Warehouse[]
+//   warehouse Warehouse[]
 
-  @@index([regionId])
-}
+//   @@index([regionId])
+// }
 
-model Warehouse {
-  id       Int    @id @default(autoincrement())
-  name     String
+// model Warehouse {
+//   id       Int    @id @default(autoincrement())
+//   name     String
 
-  branchId Int
-  branch   Branch @relation(fields: [branchId], references: [id])
+//   branchId Int
+//   branch   Branch @relation(fields: [branchId], references: [id])
 
-  stocks   ProductStock[]
-  employee Employees[]
+//   stocks   ProductStock[]
+//   employee Employees[]
 
-  @@index([branchId])
-}
+//   @@index([branchId])
+// }
 
-model Employees {
-  id          Int    @id @default(autoincrement())
-  warehouseId Int
+// model Employees {
+//   id          Int    @id @default(autoincrement())
+//   warehouseId Int
 
-  name        String
-  email       String @unique
-  phone       String?
-  password    String
-  status      Int?
+//   name        String
+//   email       String @unique
+//   phone       String?
+//   password    String
+//   status      Int?
 
-  createdAt   DateTime @default(now())
-  updateAt    DateTime?
+//   createdAt   DateTime @default(now())
+//   updateAt    DateTime?
 
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+//   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
 
-  @@index([warehouseId])
-}
+//   @@index([warehouseId])
+// }
 
 model Categories {
   id          Int    @id @default(autoincrement())
@@ -175,7 +176,7 @@ model ProductStock {
   quantity        Int
 
   productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
-  warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
+  // warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
 
   @@unique([productDetailId, warehouseId])
   @@index([warehouseId])

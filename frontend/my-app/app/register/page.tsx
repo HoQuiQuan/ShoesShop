@@ -10,7 +10,9 @@ import {
 } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { auth, googleProvider } from "@/lib/firebase";
+import axios from "axios";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,6 +20,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const handleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -29,9 +33,7 @@ export default function RegisterPage() {
       console.log(error);
     }
   };
-  const handleRegister = async (e: any) => {
-    e.preventDefault();
-
+  const handleRegister = async () => {
     if (!name || !email || !password) {
       alert("Vui lòng nhập đầy đủ thông tin");
       return;
@@ -43,30 +45,22 @@ export default function RegisterPage() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
+      const registerCustomer = await axios.post(
+        "http://localhost:5000/auth/register",
+        {
+          username: name,
+          email: email,
+          password: password,
+        },
       );
-
-      await sendEmailVerification(userCredential.user);
-
-      alert("Đăng ký thành công. Vui lòng kiểm tra email để xác thực.");
-
       router.push("/login");
     } catch (error: any) {
-      if (error.code === "auth/email-already-in-use") {
-        alert("Email đã tồn tại");
-      } else if (error.code === "auth/weak-password") {
-        alert("Mật khẩu phải ít nhất 6 ký tự");
-      } else {
-        alert(error.message);
-      }
+      alert("err");
     }
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex py-2">
       {/* LEFT BANNER */}
       <div className="hidden lg:flex w-1/2 bg-black text-white items-center justify-center">
         <div className="max-w-md text-center space-y-6">
@@ -85,7 +79,7 @@ export default function RegisterPage() {
             <p className="text-gray-500">Tạo tài khoản để bắt đầu mua sắm</p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleRegister}>
+          <form className="space-y-4" action={handleRegister}>
             <div>
               <label className="text-sm font-medium">Họ và tên</label>
               <input
@@ -110,24 +104,40 @@ export default function RegisterPage() {
 
             <div>
               <label className="text-sm font-medium">Mật khẩu</label>
-              <input
-                type="password"
-                placeholder="Nhập mật khẩu"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full mt-1 border rounded-lg px-4 py-3"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full mt-1 border rounded-lg px-4 py-3"
+                />
+                <button
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-5"
+                >
+                  {showPassword ? <FiEye /> : <FiEyeOff />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="text-sm font-medium">Xác nhận mật khẩu</label>
-              <input
-                type="password"
-                placeholder="Nhập lại mật khẩu"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full mt-1 border rounded-lg px-4 py-3"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập lại mật khẩu"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full mt-1 border rounded-lg px-4 py-3"
+                />
+                <button
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-5"
+                >
+                  {showConfirmPassword ? <FiEye /> : <FiEyeOff />}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 text-sm">
@@ -140,6 +150,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+              // onClick={() => handleRegister()}
             >
               Đăng ký
             </button>

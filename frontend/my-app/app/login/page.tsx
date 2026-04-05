@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -11,51 +12,55 @@ import {
 import { auth, googleProvider } from "@/lib/firebase";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
+import axios from "axios";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordGoogle, setPasswordGoogle] = useState(""); // set password cho google
-  const [isHiddenFieldPasswordGoogle, setIsHiddenFieldPasswordGoogle] =
-    useState(""); // ô nhập liệu password cho đăng nhập bằng google
-  const provider = new GoogleAuthProvider();
-
+  const [showPassword, setShowPassword] = useState(false);
+  // LOGIN EMAIL BẰNG GOOGLE
   const handleLoginGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-
       const user = result.user;
-
-      console.log(user);
+      const token = await user.getIdToken(true);
+      try {
+        const res = await axios.post(
+          "http://localhost:5000/auth/loginWithGoogle",
+          {
+            token: token,
+          },
+          { withCredentials: true },
+        );
+        // console.log(res.data);
+        console.log(res.data);
+        alert("Login success");
+        router.push("/");
+      } catch (error) {
+        alert(error);
+      }
     } catch (error) {
-      console.log(error);
+      alert("fail");
     }
   };
 
   // LOGIN EMAIL PASSWORD
   const loginWithPassword = async () => {
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-
-      if (methods.includes("google.com") && !methods.includes("password")) {
-        alert("Email này đăng nhập bằng Google");
-        return;
-      }
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password,
+      const res = await axios.post(
+        "http://localhost:5000/auth/loginLocal",
+        {
+          email,
+          password,
+        },
+        { withCredentials: true },
       );
-
-      console.log(userCredential.user);
-
-      alert("Đăng nhập thành công");
+      console.log(res.data);
+      alert("Login success");
+      router.push("/");
     } catch (error) {
-      console.log(error);
-
-      alert("Đăng nhập thất bại");
+      alert(error);
     }
   };
 
@@ -95,7 +100,7 @@ export default function LoginPage() {
             </div>
 
             {/* Password */}
-            <div>
+            {/* <div>
               <label className="text-sm font-medium">Mật khẩu</label>
               <input
                 type="password"
@@ -104,6 +109,25 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full mt-1 border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
               />
+            </div> */}
+
+            <div>
+              <label className="text-sm font-medium">Mật khẩu</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full mt-1 border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <button
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-5"
+                >
+                  {showPassword ? <FiEye /> : <FiEyeOff />}
+                </button>
+              </div>
             </div>
 
             {/* Remember + forgot */}
