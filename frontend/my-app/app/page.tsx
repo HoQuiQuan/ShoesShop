@@ -4,7 +4,7 @@ import Image from "next/image";
 import HeroBanner from "@/components/HeroBaner";
 import { useEffect } from "react";
 import { useAppDispatch } from "@/reduxToolkit/hooks";
-import { fetchCustomer } from "@/reduxToolkit/Slice.reduxToolkit";
+import { fetchCustomer } from "@/reduxToolkit/Auth.reduxToolkit";
 import { useSelector } from "react-redux";
 
 export default function Home() {

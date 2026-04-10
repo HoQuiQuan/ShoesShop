@@ -57,3 +57,5 @@ export const CustomerSlice = createSlice({
 });
 
 export default CustomerSlice.reducer;
+
+// dispatch

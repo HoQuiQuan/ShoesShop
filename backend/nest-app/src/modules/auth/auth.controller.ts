@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UnauthorizedException } from '@nestjs/common';
 import {
@@ -6,9 +14,9 @@ import {
   LoginLocalFormDto,
   RegisterCustomerDto,
   TokenDto,
-} from 'src/dto/auth.dto';
+} from './dto/auth.dto';
 import type { Response, Request } from 'express';
-import { PassThrough } from 'node:stream';
+import { JwtAuthGuard } from './guards/accessToken.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -61,46 +69,18 @@ export class AuthController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMe(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async getMe(@Req() req: Request) {
     try {
-      const token = req.cookies.accessToken;
-      // console.log(token);
-      if (!token) {
-        throw new UnauthorizedException('Not logged in');
-      }
-
-      const TokenDto: TokenDto = {
-        token: token as string,
-      };
-      const user = await this.authService.veryfyJwt(TokenDto);
+      const user = req.user;
       console.log(user);
+
       return {
         ...user,
       };
     } catch (error) {
-      console.log('access token het han');
-
-      try {
-        console.log('da chay vao logic');
-        const refreshToken = req.cookies.refreshToken as string;
-        const newAccessToken =
-          await this.authService.refreshToken(refreshToken);
-        res.cookie('accessToken', newAccessToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: 'lax',
-        });
-        const tokenDto: TokenDto = {
-          token: newAccessToken.accessToken,
-        };
-        const user = await this.authService.veryfyJwt(tokenDto);
-        return {
-          ...user,
-        };
-      } catch (error) {
-        console.log('access token va refresh token het han');
-      }
+      throw new UnauthorizedException('AccessToken hết hạn hoặc không tồn tại');
     }
   }
 
@@ -109,24 +89,5 @@ export class AuthController {
     res.clearCookie('refreshToken');
     res.clearCookie('accessToken');
     return { message: 'logout success' };
-  }
-
-  @Get('accessToken')
-  async accessToken(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const access_token = req.cookies.accessToken;
-    const refresh_token = req.cookies.refreshToken;
-    if (!access_token || !refresh_token) {
-      throw new UnauthorizedException('Không có token');
-    }
-    const dataAccessToken = await this.authService.veryfyJwt({
-      token: access_token,
-    });
-    console.log(dataAccessToken);
-    return {
-      message: 'success',
-    };
   }
 }

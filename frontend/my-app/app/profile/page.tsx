@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppDispatch } from "@/reduxToolkit/hooks";
-import { fetchLogoutCustomer } from "@/reduxToolkit/Slice.reduxToolkit";
+import { fetchLogoutCustomer } from "@/reduxToolkit/Auth.reduxToolkit";
 import { useRouter } from "next/navigation";
 export default function Profile() {
   const dispatch = useAppDispatch();

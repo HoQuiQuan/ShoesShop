@@ -24,7 +24,9 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.17",
     "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.6",
     "@prisma/client": "^6.19.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -34,9 +36,11 @@
     "firebase-admin": "^13.7.0",
     "jsonwebtoken": "^9.0.3",
     "jwt-service": "^11.0.3",
+    "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -49,6 +53,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
+    "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
     "dotenv": "^17.3.1",
     "eslint": "^9.18.0",

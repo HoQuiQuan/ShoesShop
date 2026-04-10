@@ -15,89 +15,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Customers {
+model Users {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   phone     String?
   password  String?
-  status    Int?
+  status    String  // kiem tra xem user co dang hoat dong hay khong
   createdAt DateTime @default(now())
   avarta    String?
   updateAt  DateTime?
   provider  String
+  role      String
   orders    Orders[]
   comments  Comments[]
   cart      Cart?
   addresses Address[]
-
+  refreshToken RefreshToken[]
   @@index([createdAt])
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  token      String   // đã hash
+  userId     Int
+  user       Users     @relation(fields: [userId], references: [id])
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  revoked    Boolean  @default(false)
 }
 
 model Address {
   id         Int    @id @default(autoincrement())
-  customerId Int
+  userId Int
 
   city       String
   district   String
   ward       String
   street     String
 
-  customer   Customers @relation(fields: [customerId], references: [id])
+  customer   Users @relation(fields: [userId], references: [id])
 
-  @@index([customerId])
+  @@index([userId])
 }
-
-// model Region {
-//   id     Int    @id @default(autoincrement())
-//   name   String
-
-//   branch Branch[]
-// }
-
-// model Branch {
-//   id       Int    @id @default(autoincrement())
-//   name     String
-//   address  String
-
-//   regionId Int
-//   region   Region @relation(fields: [regionId], references: [id])
-
-//   warehouse Warehouse[]
-
-//   @@index([regionId])
-// }
-
-// model Warehouse {
-//   id       Int    @id @default(autoincrement())
-//   name     String
-
-//   branchId Int
-//   branch   Branch @relation(fields: [branchId], references: [id])
-
-//   stocks   ProductStock[]
-//   employee Employees[]
-
-//   @@index([branchId])
-// }
-
-// model Employees {
-//   id          Int    @id @default(autoincrement())
-//   warehouseId Int
-
-//   name        String
-//   email       String @unique
-//   phone       String?
-//   password    String
-//   status      Int?
-
-//   createdAt   DateTime @default(now())
-//   updateAt    DateTime?
-
-//   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-
-//   @@index([warehouseId])
-// }
 
 model Categories {
   id          Int    @id @default(autoincrement())
@@ -171,15 +132,13 @@ model ProductStock {
   id              Int @id @default(autoincrement())
 
   productDetailId Int
-  warehouseId     Int
 
   quantity        Int
 
   productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
   // warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
 
-  @@unique([productDetailId, warehouseId])
-  @@index([warehouseId])
+  @@unique([productDetailId])
 }
 
 model Comments {
@@ -193,7 +152,7 @@ model Comments {
   createdAt DateTime @default(now())
   updateAt  DateTime?
 
-  user      Customers @relation(fields: [userId], references: [id])
+  user      Users @relation(fields: [userId], references: [id])
   product   Products  @relation(fields: [productId], references: [id])
 
   @@index([productId])
@@ -205,7 +164,7 @@ model Cart {
 
   customerId Int @unique
 
-  customer   Customers @relation(fields: [customerId], references: [id])
+  customer   Users @relation(fields: [customerId], references: [id])
 
   items      CartItems[]
 }
@@ -219,25 +178,33 @@ model CartItems {
 
   cart          Cart           @relation(fields: [cartId], references: [id])
   productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
+  img           ImgCart[]
 
   @@unique([cartId, productDetailId])
   @@index([cartId])
 }
 
+model ImgCart {
+  id              Int @id @default(autoincrement())
+  cartItemId      Int
+  cartItem        CartItems @relation(fields: [cartItemId], references: [id])
+  img             String 
+}
+
 model Orders {
   id           Int @id @default(autoincrement())
 
-  customerId   Int
+  userId   Int
   status       Int
   totalPrice   Int
 
   createdAt    DateTime @default(now())
 
-  customer     Customers @relation(fields: [customerId], references: [id])
+  customer     Users @relation(fields: [userId], references: [id])
 
   orderDetails OrderDetails[]
 
-  @@index([customerId])
+  @@index([userId])
   @@index([createdAt])
   @@index([status])
 }

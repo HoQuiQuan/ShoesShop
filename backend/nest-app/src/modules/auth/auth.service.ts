@@ -6,11 +6,14 @@ import {
   LoginLocalFormDto,
   RegisterCustomerDto,
   TokenDto,
-} from 'src/dto/auth.dto';
+} from './dto/auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { ProviderCustomer } from 'src/enums/providerCustomer.enum';
 import * as bcrypt from 'bcrypt';
+import { JwtPayload } from './interfaces/jwtPayload.interface';
+import { Role } from '../../common/enums/role.enum';
+import { StatusUser } from 'src/common/enums/status_user.enum';
 
 // hash 1 chieu de bao mat
 async function hashPassword(plainTextPassword: string): Promise<string> {
@@ -25,13 +28,6 @@ async function comparePassword(
 ): Promise<boolean> {
   return bcrypt.compare(plainTextPassword, hashedPassword);
 }
-
-type JwtPayload = {
-  customerId: number;
-  email: string;
-  iat?: number;
-  exp?: number;
-};
 
 @Injectable()
 export class AuthService {
@@ -53,7 +49,7 @@ export class AuthService {
 
   // Đăng ký theo LOCAL
   async registerCustomer(registerCustomer: RegisterCustomerDto) {
-    const isCustomerExisted = await this.prismaService.customers.findFirst({
+    const isCustomerExisted = await this.prismaService.users.findFirst({
       where: {
         email: registerCustomer.email,
       },
@@ -64,12 +60,19 @@ export class AuthService {
     }
 
     const hashedPassword = await hashPassword(registerCustomer.password);
-    await this.prismaService.customers.create({
+    const newCustomer = await this.prismaService.users.create({
       data: {
         email: registerCustomer.email,
         password: hashedPassword,
         name: registerCustomer.username,
         provider: ProviderCustomer.LOCAL,
+        role: Role.CUSTOMER,
+        status: StatusUser.INACTIVE,
+      },
+    });
+    await this.prismaService.cart.create({
+      data: {
+        customerId: newCustomer.id,
       },
     });
     return {
@@ -81,7 +84,7 @@ export class AuthService {
   generateAccessToken(payload: JwtPayload): string {
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET as string,
-      expiresIn: '1m',
+      expiresIn: '1h',
     });
   }
 
@@ -94,44 +97,37 @@ export class AuthService {
 
   // ✅ Login Firebase → JWT
   async loginWithFirebase(loginForm: LoginGoogleFormDto) {
-    // console.log('secret: ', process.env.JWT_SECRET);
     const firebaseUser = await this.verifyFirebaseToken(loginForm.token);
     const name = 'user_' + Math.random().toString(36).substring(2, 10);
     const emailUser: string = firebaseUser.email as string;
 
-    const findUser = await this.prismaService.customers.findFirst({
+    const findUser = await this.prismaService.users.findFirst({
       where: {
         email: emailUser,
       },
     });
-    const provider: string = ProviderCustomer.GOOGLE as string;
-    if (!findUser && provider == (ProviderCustomer.GOOGLE as string)) {
-      await this.prismaService.customers.create({
+    if (!findUser) {
+      const newCustomer = await this.prismaService.users.create({
         data: {
           name: name,
           email: emailUser,
-          provider: provider,
+          provider: ProviderCustomer.GOOGLE,
+          role: Role.CUSTOMER,
+          status: StatusUser.ACTIVE,
         },
       });
-    } else if (!findUser && provider == (ProviderCustomer.LOCAL as string)) {
-      return {
-        message: 'Bạn chưa đăng ký tài khoản',
-        provider: 'Local',
-      };
-    } else {
-      if (provider == (ProviderCustomer.LOCAL as string)) {
-        if (!findUser?.password) {
-          throw new UnauthorizedException('Password not set');
-        }
-      }
+      await this.prismaService.cart.create({
+        data: {
+          customerId: newCustomer.id,
+        },
+      });
     }
 
-    console.log(name);
     // ✅ FIX: tránh undefined
     if (!firebaseUser.email) {
       throw new UnauthorizedException('Email not found in Firebase token');
     }
-    const customer = await this.prismaService.customers.findFirst({
+    const customer = await this.prismaService.users.findFirst({
       where: {
         email: firebaseUser.email,
       },
@@ -151,7 +147,6 @@ export class AuthService {
       const payload = await this.jwtService.verify<JwtPayload>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET as string,
       });
-      console.log(payload);
       return {
         accessToken: this.generateAccessToken({
           customerId: payload.customerId,
@@ -168,7 +163,7 @@ export class AuthService {
       const payload = await this.jwtService.verify<JwtPayload>(token.token, {
         secret: process.env.JWT_SECRET,
       });
-      const customer = await this.prismaService.customers.findFirst({
+      const customer = await this.prismaService.users.findFirst({
         where: {
           email: payload.email,
         },
@@ -183,7 +178,7 @@ export class AuthService {
   }
 
   async loginLocal(loginForm: LoginLocalFormDto) {
-    const findCustomer = await this.prismaService.customers.findFirst({
+    const findCustomer = await this.prismaService.users.findFirst({
       where: {
         email: loginForm.email,
       },
@@ -206,6 +201,15 @@ export class AuthService {
       customerId: findCustomer.id,
       email: findCustomer.email,
     };
+
+    await this.prismaService.users.update({
+      where: {
+        id: findCustomer.id,
+      },
+      data: {
+        status: StatusUser.ACTIVE,
+      },
+    });
 
     return {
       accessToken: this.generateAccessToken(payload),
