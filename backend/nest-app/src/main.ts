@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { TransformInterceptor } from './common/index.interceptor';
+import session from 'express-session';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,9 +17,14 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
   app.useGlobalPipes(
     new ValidationPipe({
+      transform: true,
       whitelist: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
       forbidNonWhitelisted: true,
     }),
   );
@@ -30,6 +36,20 @@ async function bootstrap() {
 
   // 👉 đọc cookie
   app.use(cookieParser());
+
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET!,
+      resave: false,
+      saveUninitialized: false,
+
+      cookie: {
+        httpOnly: true,
+        secure: false,
+        maxAge: 15 * 60 * 1000,
+      },
+    }),
+  );
 
   app.useGlobalInterceptors(new TransformInterceptor());
 

@@ -11,6 +11,7 @@ export interface Response<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: any;
   date: Date;
   path: string;
 }
@@ -45,26 +46,32 @@ export class TransformInterceptor<T> implements NestInterceptor<
     return next.handle().pipe(
       map((data: unknown) => {
         let finalMessage = this.getDefaultMessage(request.method);
-        let responseData = data;
+        let responseData: any = data;
+        let meta: any = undefined;
 
         if (data && typeof data === 'object') {
           const dataObj = data as Record<string, unknown>;
 
+          // 🔥 override message nếu có
           if ('message' in dataObj && typeof dataObj.message === 'string') {
             finalMessage = dataObj.message;
-
-            const rest = { ...dataObj };
-            delete rest.message;
-
-            responseData = Object.keys(rest).length > 0 ? rest : undefined;
           }
 
-          if (
-            responseData &&
-            typeof responseData === 'object' &&
-            'data' in (responseData as Record<string, unknown>)
-          ) {
-            responseData = (responseData as Record<string, unknown>).data;
+          // 🔥 extract data + meta
+          if ('data' in dataObj) {
+            responseData = dataObj.data;
+          }
+
+          if ('meta' in dataObj) {
+            meta = dataObj.meta;
+          }
+
+          // 🔥 nếu không có data wrapper
+          if (!('data' in dataObj)) {
+            const rest = dataObj;
+            delete rest.message;
+
+            responseData = Object.keys(rest).length > 0 ? rest : [];
           }
         }
 
@@ -72,6 +79,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
           success: true,
           message: finalMessage,
           data: responseData as T,
+          meta, // 🔥 thêm vào response
           date: new Date(),
           path: request.url,
         };

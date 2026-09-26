@@ -20,16 +20,21 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
       secretOrKey: process.env.JWT_SECRET as string,
     });
   }
-
   async validate(payload: JwtPayload) {
     const checkIdUser = await this.prismaService.users.findFirst({
       where: {
-        id: payload.customerId,
+        id: payload.userId,
       },
     });
     if (!checkIdUser) {
       throw new UnauthorizedException('User không tồn tại');
     }
-    return payload;
+    console.log(checkIdUser.role);
+    console.log(payload);
+    const role = checkIdUser?.role;
+    return {
+      ...payload,
+      role,
+    };
   }
 }

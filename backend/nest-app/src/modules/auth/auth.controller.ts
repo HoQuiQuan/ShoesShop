@@ -8,86 +8,103 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UnauthorizedException } from '@nestjs/common';
 import {
+  ChangePasswordDto,
   LoginGoogleFormDto,
   LoginLocalFormDto,
   RegisterCustomerDto,
-  TokenDto,
 } from './dto/auth.dto';
 import type { Response, Request } from 'express';
 import { JwtAuthGuard } from './guards/accessToken.guard';
+import { RefreshTokenAuthGuard } from './guards/refreshToken.guard';
+import { PrismaService } from 'src/prisma.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private prisma: PrismaService,
+  ) {}
 
   @Post('register')
-  async registerCustomerController(
-    @Body() registerCustomer: RegisterCustomerDto,
-  ) {
-    return this.authService.registerCustomer(registerCustomer);
+  register(@Body() dto: RegisterCustomerDto) {
+    return this.authService.register(dto);
   }
 
-  @Post('loginWithGoogle')
-  async loginWithFirebaseController(
-    @Body() loginForm: LoginGoogleFormDto,
+  @Post('login')
+  async login(
+    @Body() dto: LoginLocalFormDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const accessAndRefreshtoken =
-      await this.authService.loginWithFirebase(loginForm);
-
-    res.cookie('refreshToken', accessAndRefreshtoken.refreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-    });
-    return {
-      message: 'success',
-    };
+    const tokens = await this.authService.loginLocal(dto);
+    this.authService.setCookies(res, tokens);
+    return { message: 'success' };
   }
 
-  @Post('loginLocal')
-  async loginLocalController(
-    @Body() loginForm: LoginLocalFormDto,
+  @Post('login-admin')
+  async loginAdmin(
+    @Body() dto: LoginLocalFormDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const accessAndRefreshtoken = await this.authService.loginLocal(loginForm);
+    const tokens = await this.authService.loginAdmin(dto);
+    this.authService.setCookies(res, tokens);
+    return { message: 'success' };
+  }
 
-    res.cookie('refreshToken', accessAndRefreshtoken.refreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: true,
-    });
-    res.cookie('accessToken', accessAndRefreshtoken.accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: true,
-    });
-    return {
-      message: 'success',
-    };
+  @Post('login-google')
+  async loginGoogle(
+    @Body() dto: LoginGoogleFormDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.loginGoogle(dto);
+    this.authService.setCookies(res, tokens);
+    return { message: 'success' };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMe(@Req() req: Request) {
-    try {
-      const user = req.user;
-      console.log(user);
+  async getMe(@Req() req: Request & { user: any }) {
+    const user = await this.prisma.users.findUnique({
+      where: {
+        id: req.user.userId,
+      },
+    });
+    return user;
+  }
 
-      return {
-        ...user,
-      };
-    } catch (error) {
-      throw new UnauthorizedException('AccessToken hết hạn hoặc không tồn tại');
-    }
+  @UseGuards(RefreshTokenAuthGuard)
+  @Get('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies.refreshToken;
+
+    const tokens = await this.authService.refresh(refreshToken);
+    this.authService.setCookies(res, tokens);
+
+    return { message: 'refreshed' };
   }
 
   @Get('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (refreshToken) {
+      await this.authService.logout(refreshToken);
+    }
+
+    this.authService.clearCookies(res);
+
     return { message: 'logout success' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async chanegPassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.authService.changePassword(req.user.userId, dto);
   }
 }

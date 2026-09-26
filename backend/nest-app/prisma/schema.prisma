@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
+  provider     = "prisma-client-js"
   moduleFormat = "cjs"
 }
 
@@ -15,212 +8,653 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+// Chỉ còn phản ánh trạng thái quản trị (ẩn/hiện).
+// "Hết hàng" được suy ra từ tồn kho thực tế (quantity - reserved),
+// không lưu cứng để tránh hai nguồn dữ liệu lệch nhau.
+enum ProductDetailStatus {
+  ACTIVE
+  HIDDEN
+}
+
+enum OrderStatus {
+  PENDING     // vừa tạo, chờ xác nhận
+  CONFIRMED   // đã xác nhận, chờ đóng gói/giao
+  SHIPPING
+  DELIVERED
+  CANCELLED
+  RETURNED    // khách trả hàng sau khi đã nhận
+}
+
+enum PaymentMethod {
+  COD
+  VNPAY
+  MOMO
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED_AMOUNT
+}
+
+enum VoucherType {
+  DISCOUNT
+  FREESHIP
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
 model Users {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String?
-  password  String?
-  status    String  // kiem tra xem user co dang hoat dong hay khong
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  phone    String?
+  password String?
+  avatar   String?
+
+  status   UserStatus   @default(ACTIVE)
+  role     UserRole     @default(USER)
+  provider AuthProvider @default(LOCAL)
+
   createdAt DateTime @default(now())
-  avarta    String?
-  updateAt  DateTime?
-  provider  String
-  role      String
-  orders    Orders[]
-  comments  Comments[]
-  cart      Cart?
-  addresses Address[]
-  refreshToken RefreshToken[]
+  updatedAt DateTime @updatedAt
+
+  orders        Orders[]
+  comments      Comments[]
+  reviews       Reviews[]
+  cart          Cart?
+  addresses     Address[]
+  refreshTokens RefreshToken[]
+  wishlist      WishlistItems[]
+  returnRequests ReturnRequests[]
+  inventoryTransaction InventoryTransactions[]
+
   @@index([createdAt])
 }
 
 model RefreshToken {
-  id         Int      @id @default(autoincrement())
-  token      String   // đã hash
-  userId     Int
-  user       Users     @relation(fields: [userId], references: [id])
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  revoked    Boolean  @default(false)
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  jti       String   @unique
+  userId    Int
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Address {
-  id         Int    @id @default(autoincrement())
-  userId Int
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  isDefault Boolean @default(false)
 
-  city       String
-  district   String
-  ward       String
-  street     String
+  receiverName  String
+  receiverPhone String
 
-  customer   Users @relation(fields: [userId], references: [id])
+  city     String
+  ward     String
+  street   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
+// ============================================================
+// CATALOG
+// ============================================================
+
 model Categories {
-  id          Int    @id @default(autoincrement())
-  name        String
-  description String
-  status      Int
-  hot         Int
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  slug String @unique
 
-  createdAt   DateTime @default(now())
-  updateAt    DateTime?
+  description String?
+  status      CategoryStatus @default(ACTIVE)
+  isHot       Boolean        @default(false)
 
-  products    Products[]
+  parentId Int?
+  parent   Categories?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Categories[] @relation("CategoryTree")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Products[]
 
   @@index([status])
-  @@index([hot])
+  @@index([isHot])
+  @@index([parentId])
 }
 
 model Products {
-  id          Int    @id @default(autoincrement())
-
-  categoryId  Int
-  category    Categories @relation(fields: [categoryId], references: [id])
+  id         Int @id @default(autoincrement()) 
+  categoryId Int
 
   name        String
-  description String
+  description String?   @db.Text
+  slug        String @unique
 
-  rate        Int
-  countRate   Int
-  purchases   Int
+  ratingSum      Int  @default(0)
+  countRate Int   @default(0)
+  purchases Int   @default(0)
 
-  createdAt   DateTime @default(now())
-  updateAt    DateTime?
+  status ProductStatus @default(DRAFT)
 
-  productTypes ProductDetails[]
-  comments     Comments[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Categories       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants ProductDetails[]
+  comments Comments[]
+  reviews  Reviews[]
+  images   ProductImgs[]
+  wishlistedBy WishlistItems[]
+  specs       ProductSpec[]
 
   @@index([categoryId])
   @@index([createdAt])
-  @@index([rate])
   @@index([purchases])
-
-  // composite index (rất quan trọng)
   @@index([categoryId, createdAt])
-  @@index([categoryId, purchases])
 }
 
+model ProductSpec {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  product    Products  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label      String   // "Chiều cao", "Chất liệu", "Đế", "Xuất xứ"...
+  value      String   // "Khoảng 6cm", "Da PU phối da lộn tổng hợp"...
+  sortOrder  Int      @default(0)
+}
+
+model Sizes {
+  id       Int    @id @default(autoincrement())
+  value    String @unique // hỗ trợ cả size chữ (S/M/L) và size số dạng string ("39", "38.5")
+
+  variants ProductDetails[]
+}
+
+model Colors {
+  id        Int    @id @default(autoincrement())
+  name      String
+  colorCode String @unique
+
+  variants    ProductDetails[]
+  productImgs ProductImgs[]
+}
+
+// = SKU: 1 biến thể theo (product, size, color)
 model ProductDetails {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   productId Int
-  color     Int
-  size      Int
-  price     Int
+  price     Decimal @db.Decimal(10, 2)
+  sizeId    Int
+  colorId   Int
+  sku       String  @unique
 
-  status    Int
+  status ProductDetailStatus @default(ACTIVE)
 
   createdAt DateTime @default(now())
-  updateAt  DateTime?
+  updatedAt DateTime @updatedAt
 
-  product   Products @relation(fields: [productId], references: [id])
+  product Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size    Sizes    @relation(fields: [sizeId], references: [id], onDelete: Restrict)
+  color   Colors   @relation(fields: [colorId], references: [id], onDelete: Restrict)  
 
-  productStock ProductStock[]
-  orderDetail  OrderDetails[]
-  cartItems    CartItems[]
+  stock      ProductStock?
+  destroyStock  DamageStock[]
+  orderItems OrderDetails[]
+  cartItems  CartItems[]
+  wishlistedBy WishlistItems[]
 
-  @@unique([productId, size, color])
+  inventoryTransaction InventoryTransactions[]
+
+  @@unique([productId, sizeId, colorId])
   @@index([productId])
 }
 
+// 1-1 với ProductDetails. Nếu sau này cần multi-warehouse,
+// thêm warehouseId và đổi @unique([productDetailId]) thành
+// @unique([productDetailId, warehouseId]).
 model ProductStock {
   id              Int @id @default(autoincrement())
+  productDetailId Int @unique
 
-  productDetailId Int
+  quantity Int @default(0) // tổng tồn kho vật lý
+  reserved Int @default(0) // đã bị giữ chỗ bởi đơn PENDING/giỏ hàng chưa thanh toán
+
+  updatedAt DateTime @updatedAt
+
+  productDetail ProductDetails @relation(fields: [productDetailId], references: [id], onDelete: Cascade)
+
+  // available = quantity - reserved, tính ở tầng ứng dụng
+  @@index([quantity])
+}
+
+
+model DamageStock {
+  id              Int @id @default(autoincrement())
+
+  productDetailId Int @unique
 
   quantity        Int
 
-  productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
-  // warehouse     Warehouse      @relation(fields: [warehouseId], references: [id])
+  createdAt       DateTime @default(now())
 
-  @@unique([productDetailId])
+  updatedAt       DateTime @updatedAt
+
+  productDetail   ProductDetails @relation(fields: [productDetailId],references: [id])
+
+  @@index([productDetailId])
 }
 
+model ProductImgs {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  colorId   Int?
+
+  url String @db.VarChar(1000)
+  isPrimary Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color   Colors?  @relation(fields: [colorId], references: [id], onDelete: SetNull)  // 👈 thêm dòng này
+
+  @@index([productId])
+}
+
+// Bình luận thảo luận chung (không nhất thiết đã mua hàng, không có rating)
 model Comments {
   id        Int @id @default(autoincrement())
-
   userId    Int
   productId Int
 
-  content   String
+  content String
 
   createdAt DateTime @default(now())
-  updateAt  DateTime?
+  updatedAt DateTime @updatedAt
 
-  user      Users @relation(fields: [userId], references: [id])
-  product   Products  @relation(fields: [productId], references: [id])
+  user    Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
+}
+
+model ReviewImages {
+  id       Int @id @default(autoincrement())
+  reviewId Int
+  url      String @db.VarChar(1000)
+
+  review Reviews @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+// Đánh giá sao — tách riêng khỏi Comments, gắn với đơn hàng cụ thể
+// để đảm bảo chỉ khách đã mua mới review được (verified purchase).
+model Reviews {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  productId Int
+  orderDetailId Int @unique
+
+  rating  Int    // 1-5
+  content String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Products     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderDetail OrderDetails @relation(fields: [orderDetailId], references: [id], onDelete: Cascade)
+  images ReviewImages[]
+
+  @@index([productId])
+}
+
+model WishlistItems {
+  id     Int @id @default(autoincrement())
+  userId Int
+  productId Int
+  productDetailId Int?  // optional: wish theo đúng màu/size cụ thể
+
+  createdAt DateTime @default(now())
+
+  user          Users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Products        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productDetail ProductDetails? @relation(fields: [productDetailId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId, productDetailId])
   @@index([userId])
 }
 
+// ============================================================
+// CART
+// ============================================================
+
+// Hỗ trợ cả user đã đăng nhập lẫn khách vãng lai (guest cart qua sessionId).
+// Khi guest login, merge cart theo sessionId vào cart theo userId ở tầng service.
 model Cart {
-  id         Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
+  userId    Int?    @unique
+  sessionId String? @unique
 
-  customerId Int @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  customer   Users @relation(fields: [customerId], references: [id])
-
-  items      CartItems[]
+  user  Users?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItems[]
 }
 
 model CartItems {
   id              Int @id @default(autoincrement())
-
-  cartId          Int
+  cartId          Int 
   productDetailId Int
   quantity        Int
 
-  cart          Cart           @relation(fields: [cartId], references: [id])
-  productDetail ProductDetails @relation(fields: [productDetailId], references: [id])
-  img           ImgCart[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart          Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productDetail ProductDetails @relation(fields: [productDetailId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, productDetailId])
   @@index([cartId])
 }
 
-model ImgCart {
-  id              Int @id @default(autoincrement())
-  cartItemId      Int
-  cartItem        CartItems @relation(fields: [cartItemId], references: [id])
-  img             String 
+// ============================================================
+// VOUCHER / PROMOTION
+// ============================================================
+
+model Vouchers {
+  id   Int    @id @default(autoincrement())
+  code String @unique
+  voucherType   VoucherType
+
+  discountType  DiscountType
+  discountValue Decimal      @db.Decimal(10, 2)
+  maxDiscount   Decimal?     @db.Decimal(10, 2) // trần giảm giá khi discountType = PERCENT
+  minOrderValue Decimal?     @db.Decimal(10, 2)
+  description    String?
+
+  usageLimit   Int?     // null = không giới hạn
+  usedCount    Int      @default(0)
+  startAt      DateTime
+  endAt        DateTime
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  voucherUser Vouchers_User[]
+
+  @@index([isActive, startAt, endAt])
 }
+
+model Vouchers_User {
+  id  Int   @id @default(autoincrement())
+  userId  Int
+  voucherId   Int
+
+  isUsed Boolean @default(false)
+
+  @@unique([userId, voucherId])
+  voucher  Vouchers  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  discountOrders  Orders[] @relation("DiscountVoucher")
+  shippingOrders  Orders[] @relation("ShippingVoucher")
+
+} 
+
+// ============================================================
+// ORDER
+// ============================================================
 
 model Orders {
-  id           Int @id @default(autoincrement())
+  id                Int           @id @default(autoincrement())
+  orderCode         String        @unique
+  userId            Int
+  status            OrderStatus   @default(PENDING)
 
-  userId   Int
-  status       Int
-  totalPrice   Int
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus @default(UNPAID)
+  transactionId     String?
 
-  createdAt    DateTime @default(now())
+  subtotal          Decimal       @db.Decimal(12, 2)
+  shippingFee       Decimal       @db.Decimal(12, 2) @default(0)
 
-  customer     Users @relation(fields: [userId], references: [id])
+  discountAmount    Decimal       @db.Decimal(12, 2) @default(0)
+  shippingDiscount  Decimal       @db.Decimal(12, 2) @default(0)
 
-  orderDetails OrderDetails[]
+  totalPrice        Decimal       @db.Decimal(12, 2)
+
+  discountVoucherId Int?
+  shippingVoucherId Int?
+
+  
+
+  receiverName      String
+  receiverPhone     String
+  receiverAddress   String
+  note              String?
+
+  expiresAt DateTime?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user Users @relation(fields: [userId],references: [id],onDelete: Restrict)
+
+  discountVoucher Vouchers_User? @relation("DiscountVoucher",fields: [discountVoucherId],references: [id],onDelete: SetNull)
+
+  shippingVoucher Vouchers_User? @relation("ShippingVoucher",fields: [shippingVoucherId],references: [id],onDelete: SetNull)
+
+  returnRequests ReturnRequests[]
+
+  items OrderDetails[]
+
+  inventoryTransaction InventoryTransactions[]
 
   @@index([userId])
-  @@index([createdAt])
   @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }
 
+// Snapshot dữ liệu tại thời điểm đặt hàng — giữ nguyên productName/colorName/sizeValue
+// để lịch sử đơn hàng không đổi dù sản phẩm gốc bị sửa/xóa sau này.
 model OrderDetails {
-  id              Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
+  img         String? @db.VarChar(1000)
   orderId         Int
   productDetailId Int
 
-  quantity        Int
-  price           Int
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2) // giá tại thời điểm mua
+  productName String
+  colorName   String
+  sizeValue   String
 
-  order           Orders         @relation(fields: [orderId], references: [id])
-  productDetail   ProductDetails @relation(fields: [productDetailId], references: [id])
+  order         Orders          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productDetail ProductDetails  @relation(fields: [productDetailId], references: [id], onDelete: Restrict)
+  returnItems ReturnItems[]
+  review        Reviews?
 
   @@index([orderId])
+}
+
+
+enum ReturnRequestStatus {
+  PENDING       // Khách vừa tạo yêu cầu
+  APPROVED      // Admin duyệt
+  SHIPPING      // Dang van chuyen
+  RECEIVED      // Shop đã nhận hàng hoàn
+  INSPECTING    // Đang kiểm tra tình trạng
+  COMPLETED     // Hoàn tất xử lý
+  REJECTED      // Từ chối
+  CANCELLED     // Khách/admin hủy
+}
+
+model ReturnRequests {
+  id        Int                 @id @default(autoincrement())
+  orderId   Int
+  userId    Int
+  status    ReturnRequestStatus @default(PENDING)
+
+  reason    String?             @db.Text
+  note      String?             @db.Text
+  adminNote      String?             @db.Text
+
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  // Relations
+  order     Orders               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user      Users                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items     ReturnItems[]
+
+  inventoryTransaction InventoryTransactions[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ReturnItemStatus {
+  PENDING       // Item mới được tạo, chưa kiểm tra
+
+  COMPLETED     // Item đã được kiểm tra và xử lý xong
+
+  CANCELLED     // Item bị hủy, không tiếp tục xử lý
+}
+
+model ReturnItems {
+  id              Int                  @id @default(autoincrement())
+
+  returnRequestId Int
+  orderDetailId   Int
+
+  status    ReturnItemStatus    @default(PENDING)
+
+  // Số lượng khách yêu cầu trả
+  returnedQuantity Int
+
+  // Số lượng sau khi kiểm tra
+  normalQuantity   Int                  @default(0)
+  damagedQuantity  Int                  @default(0)
+
+  inspectionNote  String?               @db.Text
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  // Relations
+  returnRequest   ReturnRequests        @relation(fields: [returnRequestId],references: [id],onDelete: Cascade)
+
+  orderDetail     OrderDetails          @relation(fields: [orderDetailId],references: [id],onDelete: Restrict )
+
+  @@index([returnRequestId])
+  @@index([orderDetailId])
+  @@unique([returnRequestId, orderDetailId])
+}
+
+enum InventoryTransactionType {
+  STOCK_IN
+  STOCK_OUT
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+model InventoryTransactions {
+  id                Int      @id @default(autoincrement())
+
+  productDetailId   Int
+
+  type              InventoryTransactionType
+
+  quantity          Int
+
+  beforeQuantity    Int
+  afterQuantity     Int
+
+  reason            String?  @db.VarChar(500)
+  note              String?  @db.VarChar(1000)
+
+  orderId           Int?
+  returnRequestId   Int?
+
+  adminId           Int?
+
+  createdAt         DateTime @default(now())
+
+  productDetail     ProductDetails @relation(fields: [productDetailId],references: [id])
+
+  order             Orders? @relation(fields: [orderId],references: [id])
+
+  returnRequest     ReturnRequests? @relation(fields: [returnRequestId],references: [id] )
+
+  admin             Users? @relation(fields: [adminId],references: [id])
+
   @@index([productDetailId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([orderId])
+  @@index([returnRequestId])
 }

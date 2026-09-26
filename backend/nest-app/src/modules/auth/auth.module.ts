@@ -6,11 +6,12 @@ import { JwtModule } from '@nestjs/jwt';
 // import { AuthGuard } from './auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { AccessTokenStrategy } from './strategies/accessToken.strategy';
+import { refreshTokenStrategy } from './strategies/refreshToken.strategy';
 
 @Module({
   imports: [PrismaModule, JwtModule.register({}), PassportModule],
   controllers: [AuthController],
-  providers: [AuthService, AccessTokenStrategy],
-  exports: [JwtModule, AccessTokenStrategy],
+  providers: [AuthService, AccessTokenStrategy, refreshTokenStrategy],
+  exports: [JwtModule, AccessTokenStrategy, refreshTokenStrategy],
 })
 export class AuthModule {}

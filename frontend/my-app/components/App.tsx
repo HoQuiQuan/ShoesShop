@@ -13,11 +13,6 @@ export function App({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     dispatch(fetchCustomer());
     dispatch(getCart());
-    console.log("da console");
   }, []);
-  useEffect(() => {
-    console.log("customer: ", dataCustomer);
-    console.log("cart: ", dataCart);
-  }, [dataCustomer, dataCart]);
   return <>{children}</>;
 }

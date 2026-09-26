@@ -1,9 +1,13 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class TokenDto {
   @IsString()
   @IsNotEmpty()
-  token: string;
+  accessToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
 }
 
 // Đăng ký bằng google
@@ -37,4 +41,18 @@ export class LoginLocalFormDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  oldPassword: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword: string;
+
+  @IsString()
+  @IsNotEmpty()
+  confirmPassword: string;
 }
